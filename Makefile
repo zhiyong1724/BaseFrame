@@ -9,12 +9,14 @@ vpath %.o $(OBJ_DIR)
 
 INCLUDES := -I.
 
-CXXFLAGS += -Wall -Werror -std=c++17 -g
+CXXFLAGS += -Wall -Werror -std=c++20 -pedantic -g
 
 SRCS := main.cpp \
 	Handler.cpp \
 	MessageQueue.cpp \
-	ActivityManager.cpp
+	ActivityManager.cpp \
+	LanguageManager.cpp \
+	Activity.cpp
 
 BASE_OBJS := $(patsubst %.cpp, %.o, $(SRCS))
 OBJS := $(addprefix $(OBJ_DIR)/,$(BASE_OBJS))

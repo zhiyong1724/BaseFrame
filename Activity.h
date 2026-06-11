@@ -2,28 +2,63 @@
 #define __ACTIVITY_H__
 #include <string>
 #include "Message.hpp"
+#include "LanguageManager.h"
+#include "LiveState.h"
 namespace BaseFrame
 {
     class ActivityManager;
-    class Activity
+    class Activity : public LiveState
     {
     public:
         friend ActivityManager;
+        enum ActivityType
+        {
+            ACTIVITY_TYPE_NORMAL,
+            ACTIVITY_TYPE_FRAGMENT
+        };
+
+        struct Configuration
+        {
+            LanguageManager::Language language;
+            Configuration() : language(LanguageManager::Language::LANGUAGE_EN) {}
+            bool operator!=(const Configuration &configuration) const
+            {
+                if (language != configuration.language)
+                {
+                    return true;
+                }
+                return false;
+            }
+
+            void operator=(const Configuration &configuration)
+            {
+                language = configuration.language;
+            }
+        };
 
     public:
-        Activity();
+        Activity(ActivityType type = ACTIVITY_TYPE_NORMAL);
         virtual ~Activity();
-        bool startActivity(const std::string &name, const BaseFrame::Message::MessagePtr &message);
-        void exit();
-    private:
+        void startActivity(const std::string &name, const BaseFrame::Message::MessagePtr &message);
+        void finish();
+
+    protected:
         virtual void onCreate();
-        virtual void onStart(const BaseFrame::Message::MessagePtr &message);
-        virtual void onRestart(const BaseFrame::Message::MessagePtr &message);
+        virtual void onStart();
+        virtual void onResume(const BaseFrame::Message::MessagePtr &message);
+        virtual void onPause();
         virtual void onStop();
         virtual void onDestroy();
+        virtual void onConfigurationChanged(const Configuration &configuration);
 
     private:
-        bool mIsStarted;
+        virtual void setState(State state) override;
+        virtual State getState() override;
+
+    private:
+        State mState = STATE_UNINIT;
+        ActivityType mActivityType;
+        Configuration mConfiguration;
     };
 }
 #endif

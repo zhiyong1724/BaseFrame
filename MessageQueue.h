@@ -3,7 +3,9 @@
 #include <vector>
 #include <mutex>
 #include "Message.hpp"
-namespace  BaseFrame
+#include <thread>
+#include <atomic>
+namespace BaseFrame
 {
     class MessageQueue
     {
@@ -17,11 +19,13 @@ namespace  BaseFrame
         void dispatchMessage();
         void clearMessage();
         void setMaxMsgCount(int n);
+        std::thread::id getDispatchThreadId();
 
     private:
         Messages mMessages;
         std::mutex mMutex;
-        size_t mMaxMsgCount;
+        size_t mMaxMsgCount = 4096;
+        std::atomic<std::thread::id> mDispatchThreadId;
     };
 }
 #endif

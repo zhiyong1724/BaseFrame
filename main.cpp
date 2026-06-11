@@ -7,7 +7,7 @@ int main()
         printf("Hello%d\n", i);
     }));
 
-    auto subject = observerManager.getSubject<void(int)>("hello");
-    subject->call(20);
+    auto observer = observerManager.getObserver<void(int)>("hello");
+    observer->notify(20);
     return 0;
 }

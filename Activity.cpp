@@ -2,7 +2,7 @@
 #include "ActivityManager.h"
 namespace BaseFrame
 {
-    Activity::Activity() : mIsStarted(false)
+    Activity::Activity(ActivityType type) : mActivityType(type)
     {
     }
 
@@ -10,27 +10,31 @@ namespace BaseFrame
     {
     }
 
-    bool Activity::startActivity(const std::string &name, const BaseFrame::Message::MessagePtr &message)
+    void Activity::startActivity(const std::string &name, const BaseFrame::Message::MessagePtr &message)
     {
         auto &activityManager = ActivityManager::getInstance();
-        return activityManager.startActivity(name, message);
+        activityManager.startActivity(name, message);
     }
 
-    void Activity::exit()
+    void Activity::finish()
     {
         auto &activityManager = ActivityManager::getInstance();
-        activityManager.exit();
+        activityManager.finish();
     }
 
     void Activity::onCreate()
     {
     }
 
-    void Activity::onStart(const BaseFrame::Message::MessagePtr &message)
+    void Activity::onStart()
     {
     }
 
-    void Activity::onRestart(const BaseFrame::Message::MessagePtr &message)
+    void Activity::onResume(const BaseFrame::Message::MessagePtr &message)
+    {
+    }
+
+    void Activity::onPause()
     {
     }
 
@@ -40,5 +44,19 @@ namespace BaseFrame
 
     void Activity::onDestroy()
     {
+    }
+
+    void Activity::onConfigurationChanged(const Configuration &configuration)
+    {
+    }
+
+    void Activity::setState(State state)
+    {
+        mState = state;
+    }
+
+    Activity::State Activity::getState()
+    {
+        return mState;
     }
 }

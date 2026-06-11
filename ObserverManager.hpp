@@ -1,7 +1,6 @@
 #ifndef __OBSERVER_MANAGER_HPP__
 #define __OBSERVER_MANAGER_HPP__
 #include "Observer.hpp"
-#include "Subject.hpp"
 #include <memory>
 #include <map>
 #include <string>
@@ -23,7 +22,7 @@ namespace  BaseFrame
         void registerObserver(const std::string &observerName, const T &observer)
         {
             std::lock_guard<std::mutex> autolock(mLock);
-            mObservers.insert(std::make_pair(observerName, std::make_shared<T>(observer)));
+            mObservers[observerName] = std::make_shared<T>(observer);
         }
 
         void unregisterObserver(const std::string &observerName)
@@ -37,14 +36,13 @@ namespace  BaseFrame
         }
 
         template <typename T>
-        std::shared_ptr<Subject<T>> getSubject(const std::string &observerName)
+        std::shared_ptr<Observer<T>> getObserver(const std::string &observerName)
         {
             std::lock_guard<std::mutex> autolock(mLock);
             auto itr = mObservers.find(observerName);
             if (itr != mObservers.end())
             {
-                auto observer = (Subject<T> *)itr->second.get();
-                return std::make_shared<Subject<T>>(*observer);
+                return std::dynamic_pointer_cast<Observer<T>>(itr->second);
             }
             return nullptr;
         }

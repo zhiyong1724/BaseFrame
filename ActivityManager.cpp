@@ -1,8 +1,14 @@
 #include "ActivityManager.h"
+#include "ObserverManager.hpp"
 namespace BaseFrame
 {
     ActivityManager::ActivityManager() : mHandler(&MessageQueue::getInstance())
     {
+        auto language = LanguageManager::getInstance().getLanguage();
+        mConfiguration.language = language;
+
+        auto &observerManager = ObserverManager::getInstance();
+        observerManager.registerObserver("ActivityManager::setLanguage", Observer<void(LanguageManager::Language)>(std::bind(&ActivityManager::setLanguage, this, std::placeholders::_1)));
     }
 
     ActivityManager::~ActivityManager()
@@ -15,78 +21,113 @@ namespace BaseFrame
         return sActivityManager;
     }
 
-    void ActivityManager::registerActivity(const std::string &name, const std::shared_ptr<Activity> &activity)
-    {
-        std::lock_guard<std::mutex> autolock(mLock);
-        activity->onCreate();
-        mActivityMap.insert(std::make_pair(name, activity));
-    }
-
     void ActivityManager::unregisterActivity(const std::string &name)
     {
-        std::lock_guard<std::mutex> autolock(mLock);
-        auto itr = mActivityMap.find(name);
-        if (itr != mActivityMap.end())
+        auto itr = mActivityFactoryMap.find(name);
+        if (itr != mActivityFactoryMap.end())
         {
-            auto activity = itr->second;
-            removeFromTrack(itr->second);
-            mActivityMap.erase(itr);
-            activity->onDestroy();
+            mActivityFactoryMap.erase(itr);
         }
     }
 
-    bool ActivityManager::startActivity(const std::string &name, const Message::MessagePtr &message)
+    void ActivityManager::startActivity(const std::string &name, const Message::MessagePtr &message)
     {
-        std::lock_guard<std::mutex> autolock(mLock);
-        auto itr = mActivityMap.find(name);
-        if (itr != mActivityMap.end())
-        {
+        mHandler.post([this, name, message]() { //
+            auto factoryItr = mActivityFactoryMap.find(name);
+            if (factoryItr != mActivityFactoryMap.end())
+            {
+                std::shared_ptr<Activity> activity = nullptr;
+                auto activityItr = mActivityMap.find(name);
+                if (activityItr != mActivityMap.end())
+                {
+                    activity = activityItr->second;
+                    removeFromTrack(activity);
+                }
+                else
+                {
+                    auto factory = factoryItr->second;
+                    activity = factory();
+                    activity->mConfiguration = mConfiguration;
+                    activity->mState = Activity::STATE_CREATED;
+                    mActivityMap.insert(std::make_pair(name, activity));
+                }
+
+                if (!mActivityTrack.empty())
+                {
+                    auto &stopActivity = mActivityTrack.back();
+                    stopActivity->mState = Activity::STATE_PAUSED;
+                    stopActivity->onPause();
+                    if (Activity::ACTIVITY_TYPE_NORMAL == activity->mActivityType)
+                    {
+                        stopActivity->mState = Activity::STATE_STOPED;
+                        stopActivity->onStop();
+                    }
+                }
+                mActivityTrack.push_back(activity);
+                switch (activity->mState)
+                {
+                case Activity::STATE_CREATED:
+                    activity->onCreate();
+                    activity->mState = Activity::STATE_STARTED;
+                    activity->onStart();
+                    activity->mState = Activity::STATE_RESUMED;
+                    activity->onResume(message);
+                    break;
+                case Activity::STATE_STOPED:
+                    activity->mState = Activity::STATE_STARTED;
+                    activity->onStart();
+                    activity->mState = Activity::STATE_RESUMED;
+                    activity->onResume(message);
+                    checkConfigurationChanged(activity);
+                    break;
+                case Activity::STATE_PAUSED:
+                    activity->mState = Activity::STATE_RESUMED;
+                    activity->onResume(message);
+                    break;
+                default:
+                    break;
+                }
+            }
+        });
+    }
+
+    void ActivityManager::finish()
+    {
+        mHandler.post([this]() { //
             if (!mActivityTrack.empty())
             {
                 auto &stopActivity = mActivityTrack.back();
-                mHandler.post([stopActivity](){
-                    stopActivity->onStop();
-                });
+                stopActivity->mState = Activity::STATE_PAUSED;
+                stopActivity->onPause();
+                stopActivity->mState = Activity::STATE_STOPED;
+                stopActivity->onStop();
+                stopActivity->mState = Activity::STATE_DESTROYED;
+                stopActivity->onDestroy();
+                removeFromActivityMap(stopActivity);
+                mActivityTrack.pop_back();
+                
+                if (!mActivityTrack.empty())
+                {
+                    auto &activity = mActivityTrack.back();
+                    switch (activity->mState)
+                    {
+                    case Activity::STATE_STOPED:
+                        activity->mState = Activity::STATE_STARTED;
+                        activity->onStart();
+                        activity->mState = Activity::STATE_RESUMED;
+                        activity->onResume(nullptr);
+                        checkConfigurationChanged(activity);
+                        break;
+                    case Activity::STATE_PAUSED:
+                        activity->mState = Activity::STATE_RESUMED;
+                        activity->onResume(nullptr);
+                        break;
+                    default:
+                        break;
+                    }
+                }
             }
-            auto &activity = itr->second;
-            removeFromTrack(activity);
-            mActivityTrack.push_back(activity);
-            if (activity->mIsStarted)
-            {
-                mHandler.post([activity, message](){
-                    activity->onRestart(message);
-                });
-            }
-            else
-            {
-                mHandler.post([activity, message](){
-                    activity->onStart(message);
-                });
-            }
-            return true;
-        }
-        return false;
-    }
-
-    void ActivityManager::exit()
-    {
-        std::lock_guard<std::mutex> autolock(mLock);
-        if (!mActivityTrack.empty())
-        {
-            auto &stopActivity = mActivityTrack.back();
-            mHandler.post([stopActivity](){
-                    stopActivity->onStop();
-                });
-            mActivityTrack.pop_back();
-
-            if (!mActivityTrack.empty())
-            {
-                auto &activity = mActivityTrack.back();
-                mHandler.post([activity](){
-                    activity->onRestart(nullptr);
-                });
-            }
-        }
+        });
     }
 
     void ActivityManager::removeFromTrack(const std::shared_ptr<Activity> &activity)
@@ -98,6 +139,47 @@ namespace BaseFrame
                 mActivityTrack.erase(itr);
                 break;
             }
+        }
+    }
+
+    void ActivityManager::removeFromActivityMap(const std::shared_ptr<Activity> &activity)
+    {
+        for (auto itr = mActivityMap.begin(); itr != mActivityMap.end(); itr++)
+        {
+            if (itr->second == activity)
+            {
+                mActivityMap.erase(itr);
+                break;
+            }
+        }
+    }
+
+    void ActivityManager::setLanguage(LanguageManager::Language language)
+    {
+        mHandler.post([this, language]() { //
+            mConfiguration.language = language;
+            for (auto &activity : mActivityTrack)
+            {
+                switch (activity->mState)
+                {
+                case Activity::STATE_STARTED:
+                case Activity::STATE_RESUMED:
+                case Activity::STATE_PAUSED:
+                    checkConfigurationChanged(activity);
+                    break;
+                default:
+                    break;
+                }
+            }
+        });
+    }
+
+    void ActivityManager::checkConfigurationChanged(const std::shared_ptr<Activity> &activity)
+    {
+        if (activity->mConfiguration != mConfiguration)
+        {
+            activity->mConfiguration = mConfiguration;
+            activity->onConfigurationChanged(mConfiguration);
         }
     }
 }

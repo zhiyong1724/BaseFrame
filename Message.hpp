@@ -21,18 +21,15 @@ namespace  BaseFrame
         }
 
     private:
-        Message() : target(nullptr)
+        Message()
         {
-            what = 0;
-            arg0 = 0;
-            arg1 = nullptr;
         }
 
     public:
-        int what;
-        int arg0;
-        void *arg1;
-        IHandler *target;
+        int what = 0;
+        int arg0 = 0;
+        void *arg1 = nullptr;
+        IHandler *target = nullptr;
         std::function<void()> handle;
     };
 }

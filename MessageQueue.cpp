@@ -1,7 +1,7 @@
 #include "MessageQueue.h"
 namespace  BaseFrame
 {
-    MessageQueue::MessageQueue() : mMaxMsgCount(100)
+    MessageQueue::MessageQueue()
     {
     }
 
@@ -28,6 +28,7 @@ namespace  BaseFrame
 
     void MessageQueue::dispatchMessage()
     {
+        mDispatchThreadId.store(std::this_thread::get_id(), std::memory_order_release);
         mMutex.lock();
         Messages messages = mMessages;
         mMessages.clear();
@@ -38,7 +39,7 @@ namespace  BaseFrame
             {
                 message->target->handleMessage(message.get());
             }
-            else
+            else if(message->handle != nullptr)
             {
                 message->handle();
             }
@@ -55,5 +56,10 @@ namespace  BaseFrame
     {
         std::lock_guard<std::mutex> autolock(mMutex);
         mMaxMsgCount = n;
+    }
+
+    std::thread::id MessageQueue::getDispatchThreadId()
+    {
+        return mDispatchThreadId.load(std::memory_order_acquire);
     }
 }

@@ -5,7 +5,6 @@
 #include <memory>
 #include <map>
 #include <string>
-#include <mutex>
 #include "Handler.h"
 namespace BaseFrame
 {
@@ -14,19 +13,26 @@ namespace BaseFrame
     public:
         ~ActivityManager();
         static ActivityManager &getInstance();
-        void registerActivity(const std::string &name, const std::shared_ptr<Activity> &activity);
-        void unregisterActivity(const std::string &name); 
-        bool startActivity(const std::string &name, const Message::MessagePtr &message);
-        void exit(); 
+        template<typename T>
+        void registerActivity(const std::string &name) 
+        {
+            mActivityFactoryMap.insert(std::make_pair(name, []() -> std::shared_ptr<Activity> { return std::make_shared<T>(); }));
+        }
+        void unregisterActivity(const std::string &name);
+        void startActivity(const std::string &name, const Message::MessagePtr &message);
+        void finish(); 
     private:
         ActivityManager();
         void removeFromTrack(const std::shared_ptr<Activity> &activity);
-
+        void removeFromActivityMap(const std::shared_ptr<Activity> &activity);
+        void setLanguage(LanguageManager::Language language);
+        void checkConfigurationChanged(const std::shared_ptr<Activity> &activity);
     private:
-        std::mutex mLock;
         std::map<std::string, std::shared_ptr<Activity>> mActivityMap;
+        std::map<std::string, std::function<std::shared_ptr<Activity>()>> mActivityFactoryMap;
         std::list<std::shared_ptr<Activity>> mActivityTrack;
         Handler mHandler;
+        Activity::Configuration mConfiguration;
     };
 }
 #endif
