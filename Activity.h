@@ -4,10 +4,11 @@
 #include "Message.hpp"
 #include "LanguageManager.h"
 #include "LiveState.h"
+#include <memory>
 namespace BaseFrame
 {
     class ActivityManager;
-    class Activity : public LiveState
+    class Activity : public std::enable_shared_from_this<Activity>, public LiveState
     {
     public:
         friend ActivityManager;

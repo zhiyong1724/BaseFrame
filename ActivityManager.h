@@ -2,7 +2,6 @@
 #define __ACTIVITY_MANAGER_H__
 #include "Activity.h"
 #include <list>
-#include <memory>
 #include <map>
 #include <string>
 #include "Handler.h"
@@ -20,7 +19,7 @@ namespace BaseFrame
         }
         void unregisterActivity(const std::string &name);
         void startActivity(const std::string &name, const Message::MessagePtr &message);
-        void finish(); 
+        void finish(const std::shared_ptr<Activity> &activity); 
     private:
         ActivityManager();
         void removeFromTrack(const std::shared_ptr<Activity> &activity);

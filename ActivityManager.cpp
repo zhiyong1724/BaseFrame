@@ -91,40 +91,44 @@ namespace BaseFrame
         });
     }
 
-    void ActivityManager::finish()
+    void ActivityManager::finish(const std::shared_ptr<Activity> &activity)
     {
-        mHandler.post([this]() { //
+        mHandler.post([this, activity]() { //
+            if (activity->mState == Activity::STATE_RESUMED)
+            {
+                activity->mState = Activity::STATE_PAUSED;
+                activity->onPause();
+            }
+            if (activity->mState == Activity::STATE_STARTED || activity->mState == Activity::STATE_PAUSED)
+            {
+                activity->mState = Activity::STATE_STOPED;
+                activity->onStop();
+            }
+            if (activity->mState == Activity::STATE_CREATED || activity->mState == Activity::STATE_STOPED)
+            {
+                activity->mState = Activity::STATE_DESTROYED;
+                activity->onDestroy();
+                removeFromTrack(activity);
+                removeFromActivityMap(activity);
+            }
             if (!mActivityTrack.empty())
             {
-                auto &stopActivity = mActivityTrack.back();
-                stopActivity->mState = Activity::STATE_PAUSED;
-                stopActivity->onPause();
-                stopActivity->mState = Activity::STATE_STOPED;
-                stopActivity->onStop();
-                stopActivity->mState = Activity::STATE_DESTROYED;
-                stopActivity->onDestroy();
-                removeFromActivityMap(stopActivity);
-                mActivityTrack.pop_back();
-                
-                if (!mActivityTrack.empty())
+                auto &activity = mActivityTrack.back();
+                switch (activity->mState)
                 {
-                    auto &activity = mActivityTrack.back();
-                    switch (activity->mState)
-                    {
-                    case Activity::STATE_STOPED:
-                        activity->mState = Activity::STATE_STARTED;
-                        activity->onStart();
-                        activity->mState = Activity::STATE_RESUMED;
-                        activity->onResume(nullptr);
-                        checkConfigurationChanged(activity);
-                        break;
-                    case Activity::STATE_PAUSED:
-                        activity->mState = Activity::STATE_RESUMED;
-                        activity->onResume(nullptr);
-                        break;
-                    default:
-                        break;
-                    }
+                case Activity::STATE_STOPED:
+                    activity->mState = Activity::STATE_STARTED;
+                    activity->onStart();
+                    activity->mState = Activity::STATE_RESUMED;
+                    activity->onResume(nullptr);
+                    checkConfigurationChanged(activity);
+                    break;
+                case Activity::STATE_PAUSED:
+                    activity->mState = Activity::STATE_RESUMED;
+                    activity->onResume(nullptr);
+                    break;
+                default:
+                    break;
                 }
             }
         });

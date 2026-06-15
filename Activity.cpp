@@ -19,7 +19,7 @@ namespace BaseFrame
     void Activity::finish()
     {
         auto &activityManager = ActivityManager::getInstance();
-        activityManager.finish();
+        activityManager.finish(shared_from_this());
     }
 
     void Activity::onCreate()
