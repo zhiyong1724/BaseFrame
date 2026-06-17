@@ -16,7 +16,8 @@ SRCS := main.cpp \
 	MessageQueue.cpp \
 	ActivityManager.cpp \
 	LanguageManager.cpp \
-	Activity.cpp
+	Activity.cpp \
+	Strings.cpp
 
 BASE_OBJS := $(patsubst %.cpp, %.o, $(SRCS))
 OBJS := $(addprefix $(OBJ_DIR)/,$(BASE_OBJS))

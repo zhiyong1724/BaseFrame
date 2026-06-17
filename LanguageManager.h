@@ -5,7 +5,7 @@
 #include <memory>
 namespace BaseFrame
 {
-    class LanguageManager : public Strings
+    class LanguageManager
     {
     public:
         enum Language
@@ -40,7 +40,7 @@ namespace BaseFrame
         void removeLanguage(Language language);
         void setLanguage(Language language);
         Language getLanguage();
-        virtual std::string getString(const std::string &key) override;
+        std::string getString(const std::string &key);
 
     private:
         Language mLanguage = Language::LANGUAGE_EN;
