@@ -23,10 +23,13 @@ namespace BaseFrame
 
     void ActivityManager::unregisterActivity(const std::string &name)
     {
-        auto itr = mActivityFactoryMap.find(name);
-        if (itr != mActivityFactoryMap.end())
+        mActivityFactoryMap.erase(name);
+
+        auto activityItr = mActivityMap.find(name);
+        if (activityItr != mActivityMap.end())
         {
-            mActivityFactoryMap.erase(itr);
+            destroyActivity(activityItr->second);
+            resumeTopActivity();
         }
     }
 
@@ -94,44 +97,54 @@ namespace BaseFrame
     void ActivityManager::finish(const std::shared_ptr<Activity> &activity)
     {
         mHandler.post([this, activity]() { //
-            if (activity->mState == Activity::STATE_RESUMED)
-            {
-                activity->mState = Activity::STATE_PAUSED;
-                activity->onPause();
-            }
-            if (activity->mState == Activity::STATE_STARTED || activity->mState == Activity::STATE_PAUSED)
-            {
-                activity->mState = Activity::STATE_STOPED;
-                activity->onStop();
-            }
-            if (activity->mState == Activity::STATE_CREATED || activity->mState == Activity::STATE_STOPED)
-            {
-                activity->mState = Activity::STATE_DESTROYED;
-                activity->onDestroy();
-                removeFromTrack(activity);
-                removeFromActivityMap(activity);
-            }
-            if (!mActivityTrack.empty())
-            {
-                auto &activity = mActivityTrack.back();
-                switch (activity->mState)
-                {
-                case Activity::STATE_STOPED:
-                    activity->mState = Activity::STATE_STARTED;
-                    activity->onStart();
-                    activity->mState = Activity::STATE_RESUMED;
-                    activity->onResume(nullptr);
-                    checkConfigurationChanged(activity);
-                    break;
-                case Activity::STATE_PAUSED:
-                    activity->mState = Activity::STATE_RESUMED;
-                    activity->onResume(nullptr);
-                    break;
-                default:
-                    break;
-                }
-            }
+            destroyActivity(activity);
+            resumeTopActivity();
         });
+    }
+
+    void ActivityManager::destroyActivity(const std::shared_ptr<Activity> &activity)
+    {
+        if (activity->mState == Activity::STATE_RESUMED)
+        {
+            activity->mState = Activity::STATE_PAUSED;
+            activity->onPause();
+        }
+        if (activity->mState == Activity::STATE_STARTED || activity->mState == Activity::STATE_PAUSED)
+        {
+            activity->mState = Activity::STATE_STOPED;
+            activity->onStop();
+        }
+        if (activity->mState == Activity::STATE_CREATED || activity->mState == Activity::STATE_STOPED)
+        {
+            activity->mState = Activity::STATE_DESTROYED;
+            activity->onDestroy();
+            removeFromTrack(activity);
+            removeFromActivityMap(activity);
+        }
+    }
+
+    void ActivityManager::resumeTopActivity()
+    {
+        if (!mActivityTrack.empty())
+        {
+            auto &activity = mActivityTrack.back();
+            switch (activity->mState)
+            {
+            case Activity::STATE_STOPED:
+                activity->mState = Activity::STATE_STARTED;
+                activity->onStart();
+                activity->mState = Activity::STATE_RESUMED;
+                activity->onResume(nullptr);
+                checkConfigurationChanged(activity);
+                break;
+            case Activity::STATE_PAUSED:
+                activity->mState = Activity::STATE_RESUMED;
+                activity->onResume(nullptr);
+                break;
+            default:
+                break;
+            }
+        }
     }
 
     void ActivityManager::removeFromTrack(const std::shared_ptr<Activity> &activity)

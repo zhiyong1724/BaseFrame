@@ -22,6 +22,8 @@ namespace BaseFrame
         void finish(const std::shared_ptr<Activity> &activity); 
     private:
         ActivityManager();
+        void destroyActivity(const std::shared_ptr<Activity> &activity);
+        void resumeTopActivity();
         void removeFromTrack(const std::shared_ptr<Activity> &activity);
         void removeFromActivityMap(const std::shared_ptr<Activity> &activity);
         void setLanguage(LanguageManager::Language language);
