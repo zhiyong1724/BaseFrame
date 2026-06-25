@@ -16,7 +16,7 @@ namespace BaseFrame
         return sLanguageManager;
     }
 
-    void LanguageManager::addLanguage(Language language, std::shared_ptr<Strings> Strings)
+    void LanguageManager::addLanguage(Language language, const std::shared_ptr<Strings> &Strings)
     {
         mLanguageMap.insert(std::make_pair(language, Strings));
     }

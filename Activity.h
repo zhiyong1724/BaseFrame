@@ -5,6 +5,7 @@
 #include "LanguageManager.h"
 #include "LiveState.h"
 #include <memory>
+#include <set>
 namespace BaseFrame
 {
     class ActivityManager;
@@ -55,11 +56,13 @@ namespace BaseFrame
     private:
         virtual void setState(State state) override;
         virtual State getState() override;
+        virtual void addViewDataReference(const Any *viewData) override;
 
     private:
         State mState = STATE_UNINIT;
         ActivityType mActivityType;
         Configuration mConfiguration;
+        std::set<Any *> mViewDataReferences;
     };
 }
 #endif

@@ -1,5 +1,6 @@
 #include "ActivityManager.h"
 #include "ObserverManager.hpp"
+#include "BaseViewData.h"
 namespace BaseFrame
 {
     ActivityManager::ActivityManager() : mHandler(&MessageQueue::getInstance())
@@ -79,9 +80,10 @@ namespace BaseFrame
                 case Activity::STATE_STOPED:
                     activity->mState = Activity::STATE_STARTED;
                     activity->onStart();
+                    notifyConfigurationChanged(activity);
+                    notifyViewDataChanged(activity);
                     activity->mState = Activity::STATE_RESUMED;
                     activity->onResume(message);
-                    checkConfigurationChanged(activity);
                     break;
                 case Activity::STATE_PAUSED:
                     activity->mState = Activity::STATE_RESUMED;
@@ -133,9 +135,10 @@ namespace BaseFrame
             case Activity::STATE_STOPED:
                 activity->mState = Activity::STATE_STARTED;
                 activity->onStart();
+                notifyConfigurationChanged(activity);
+                notifyViewDataChanged(activity);
                 activity->mState = Activity::STATE_RESUMED;
                 activity->onResume(nullptr);
-                checkConfigurationChanged(activity);
                 break;
             case Activity::STATE_PAUSED:
                 activity->mState = Activity::STATE_RESUMED;
@@ -182,7 +185,7 @@ namespace BaseFrame
                 case Activity::STATE_STARTED:
                 case Activity::STATE_RESUMED:
                 case Activity::STATE_PAUSED:
-                    checkConfigurationChanged(activity);
+                    notifyConfigurationChanged(activity);
                     break;
                 default:
                     break;
@@ -191,12 +194,24 @@ namespace BaseFrame
         });
     }
 
-    void ActivityManager::checkConfigurationChanged(const std::shared_ptr<Activity> &activity)
+    void ActivityManager::notifyConfigurationChanged(const std::shared_ptr<Activity> &activity)
     {
         if (activity->mConfiguration != mConfiguration)
         {
             activity->mConfiguration = mConfiguration;
             activity->onConfigurationChanged(mConfiguration);
+        }
+    }
+
+    void ActivityManager::notifyViewDataChanged(const std::shared_ptr<Activity> &activity)
+    {
+        for (auto &viewDataReferences : activity->mViewDataReferences)
+        {
+            auto viewData = dynamic_cast<BaseViewData *>(viewDataReferences);
+            if (viewData != nullptr)
+            {
+                viewData->notify(activity);
+            }
         }
     }
 }

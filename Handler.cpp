@@ -9,7 +9,7 @@ namespace  BaseFrame
     {
     }
 
-    bool Handler::post(std::function<void()> handle)
+    bool Handler::post(const std::function<void()> &handle)
     {
         auto message = Message::obtain();
         message->handle = handle;

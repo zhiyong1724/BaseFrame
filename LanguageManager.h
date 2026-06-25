@@ -36,7 +36,7 @@ namespace BaseFrame
         LanguageManager();
         virtual ~LanguageManager();
         static LanguageManager &getInstance();
-        void addLanguage(Language language, std::shared_ptr<Strings> Strings);
+        void addLanguage(Language language, const std::shared_ptr<Strings> &Strings);
         void removeLanguage(Language language);
         void setLanguage(Language language);
         Language getLanguage();

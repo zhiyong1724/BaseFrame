@@ -10,7 +10,7 @@ namespace  BaseFrame
         Handler(MessageQueue *messageQueue);
         virtual ~Handler();
         bool sendMessage(const Message::MessagePtr &message);
-        bool post(std::function<void()> handle);
+        bool post(const std::function<void()> &handle);
         virtual void handleMessage(void *message) override;
         std::thread::id getDispatchThreadId();
 

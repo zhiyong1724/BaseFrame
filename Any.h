@@ -1,6 +1,6 @@
-#ifndef __ANY_HPP__
-#define __ANY_HPP__
-namespace  BaseFrame
+#ifndef __ANY_H__
+#define __ANY_H__
+namespace BaseFrame
 {
     class Any
     {

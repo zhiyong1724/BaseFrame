@@ -59,4 +59,9 @@ namespace BaseFrame
     {
         return mState;
     }
+
+    void Activity::addViewDataReference(const Any *viewData)
+    {
+        mViewDataReferences.insert(const_cast<Any *>(viewData));
+    }
 }

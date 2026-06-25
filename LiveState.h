@@ -1,5 +1,6 @@
 #ifndef __LIVE_STATE_H__
 #define __LIVE_STATE_H__
+#include "Any.h"
 namespace BaseFrame
 {
     class LiveState
@@ -21,6 +22,7 @@ namespace BaseFrame
         virtual ~LiveState() {}
         virtual void setState(State state) = 0;
         virtual State getState() = 0;
+        virtual void addViewDataReference(const Any *viewData) = 0;
     };
 }
 #endif

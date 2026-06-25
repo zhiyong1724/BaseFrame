@@ -27,7 +27,8 @@ namespace BaseFrame
         void removeFromTrack(const std::shared_ptr<Activity> &activity);
         void removeFromActivityMap(const std::shared_ptr<Activity> &activity);
         void setLanguage(LanguageManager::Language language);
-        void checkConfigurationChanged(const std::shared_ptr<Activity> &activity);
+        void notifyConfigurationChanged(const std::shared_ptr<Activity> &activity);
+        void notifyViewDataChanged(const std::shared_ptr<Activity> &activity);
     private:
         std::map<std::string, std::shared_ptr<Activity>> mActivityMap;
         std::map<std::string, std::function<std::shared_ptr<Activity>()>> mActivityFactoryMap;
