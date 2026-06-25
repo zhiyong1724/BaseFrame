@@ -76,9 +76,11 @@ namespace BaseFrame
             {
                 throw std::runtime_error("not in main thread");
             }
-            mObservers.push_back(std::make_pair(liveState, observer));
+            auto observerWrapper = ObserverWrapper(observer);
+            observerWrapper.mVersion = mVersion.load(std::memory_order_acquire);
+            mObservers.push_back(std::make_pair(liveState, observerWrapper));
             liveState->addViewDataReference(this);
-            notifyAll();
+            observerWrapper.mObserver(mValue);
         }
 
         ViewData &operator=(const ViewData &t) = delete;
@@ -105,25 +107,6 @@ namespace BaseFrame
                             break;
                         }
                     }
-                    itr++;
-                }
-                else
-                {
-                    itr = mObservers.erase(itr);
-                }
-            }
-        }
-
-        void notifyAll()
-        {
-            auto value = getValue();
-            for (auto itr = mObservers.begin(); itr != mObservers.end(); )
-            {
-                auto liveState = itr->first.lock();
-                if (liveState != nullptr)
-                {
-                    itr->second.mVersion = mVersion.load(std::memory_order_acquire);
-                    itr->second.mObserver(value);
                     itr++;
                 }
                 else
